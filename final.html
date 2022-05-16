@@ -15064,7 +15064,7 @@ Vicki Wong</p>
 
 
 <div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
-<pre>&lt;matplotlib.legend.Legend at 0x7fa806543730&gt;</pre>
+<pre>&lt;matplotlib.legend.Legend at 0x7fc391326910&gt;</pre>
 </div>
 
 </div>
@@ -15091,7 +15091,868 @@ Vicki Wong</p>
 </div>
 <div class="jp-Cell-inputWrapper"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
-<p>Overall, we can see an improvement after Slippi that cannot be attributed to "just working harder" that has led to a shakeup in the performance of the top 4 players. When corona was in full force during 2020, centralized sources for worldwide player rankings were fuzzy and unable to capture the effects of an online era. Now it's clear that the tools Slippi offered were impactful in helping players improve and have created an environment that makes it harder for one person to stay at the top without putting in the time to grind.</p>
+<p>Overall, we can see an improvement after Slippi that cannot be attributed to "just working harder" that has led to a shakeup in the performance of the top 4 players. Now it's clear that the tools Slippi offered were impactful in helping players improve and have created an environment that makes it harder for one person to stay at the top without putting in the time to grind. When corona was in full force during 2020, centralized sources for worldwide player rankings were fuzzy and unable to capture the effects of an online era. Next we can try to predict what the rankings for 2021 would be based on our data. The existing rankings by pgstats were last updated in 2019 and also surveyed top players along with people active in the community, but we can still attempt to create a model and test how it compares to the existing rankings with the older data.</p>
+
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># separate data into 2019 and 2021</span>
+<span class="n">nineteen_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM tournament_info WHERE start &gt;= 1546318800 AND start &lt; 1577854800&#39;</span>
+<span class="n">before</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">nineteen_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">twentyone_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM tournament_info WHERE start &gt;= 1609477200 AND start &lt; 1641013200&#39;</span>
+<span class="n">after</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">twentyone_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+
+<span class="c1"># 2021</span>
+<span class="n">after_top</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">after</span><span class="p">[</span><span class="s1">&#39;placings&#39;</span><span class="p">],</span> <span class="n">after</span><span class="p">[</span><span class="s1">&#39;cleaned_name&#39;</span><span class="p">]):</span>
+    <span class="n">after_tourney</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Line|Ludwig|MIXUP|Slippi Champions League|Smash Summit|Valhalla|Upset|Loko|Galint|Riptide|SWT 2021|SAME</span><span class="se">\</span>
+<span class="s1">        |Mainstage|GENESIS|Pound|Double Down&#39;</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">after_tourney</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># add different amounts to score based on placement</span>
+            <span class="n">one</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">(\d+)</span><span class="se">\&quot;</span><span class="s2">, 1]&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">one</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">after_top</span><span class="p">:</span>
+                    <span class="n">after_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">1.0</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">after_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+            <span class="n">two</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">(\d+)</span><span class="se">\&quot;</span><span class="s2">, 2]&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">one</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">after_top</span><span class="p">:</span>
+                    <span class="n">after_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">0.9</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">after_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.9</span>
+            <span class="n">three</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">(\d+)</span><span class="se">\&quot;</span><span class="s2">, 3]&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">one</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">after_top</span><span class="p">:</span>
+                    <span class="n">after_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">0.5</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">after_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span>
+            <span class="n">four</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">(\d+)</span><span class="se">\&quot;</span><span class="s2">, 4]&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">one</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">after_top</span><span class="p">:</span>
+                    <span class="n">after_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">0.3</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">after_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.3</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+<span class="c1"># 2019</span>
+<span class="n">before_top</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">before</span><span class="p">[</span><span class="s1">&#39;placings&#39;</span><span class="p">],</span> <span class="n">before</span><span class="p">[</span><span class="s1">&#39;cleaned_name&#39;</span><span class="p">]):</span>
+    <span class="n">before_tourney</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Smash Summit|GENESIS|Mango</span><span class="se">\&#39;</span><span class="s1">s|Big House|Mainstage|Shine|Super Smash Con|Low|CEO|Splash|Level|Pound|GameTyrant</span><span class="se">\</span>
+<span class="s1">        |Heir|EVO|Flatiron|Bloom|Enthusiast&#39;</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">before_tourney</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">one</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">(\d+)</span><span class="se">\&quot;</span><span class="s2">, 1]&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">one</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">before_top</span><span class="p">:</span>
+                    <span class="n">before_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">1.0</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">before_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+            <span class="n">two</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">(\d+)</span><span class="se">\&quot;</span><span class="s2">, 2]&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">one</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">before_top</span><span class="p">:</span>
+                    <span class="n">before_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">0.9</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">before_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.9</span>
+            <span class="n">three</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">(\d+)</span><span class="se">\&quot;</span><span class="s2">, 3]&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">one</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">before_top</span><span class="p">:</span>
+                    <span class="n">before_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">0.5</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">before_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span>
+            <span class="n">four</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">(\d+)</span><span class="se">\&quot;</span><span class="s2">, 4]&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">one</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">before_top</span><span class="p">:</span>
+                    <span class="n">before_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">0.3</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">before_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.3</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+<span class="n">before_top</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
+
+
+
+
+<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
+<pre>{&#39;1000&#39;: 8.1,
+ &#39;1004&#39;: 16.200000000000003,
+ &#39;6126&#39;: 2.6999999999999997,
+ &#39;1028&#39;: 2.6999999999999997,
+ &#39;16342&#39;: 2.6999999999999997,
+ &#39;4465&#39;: 2.6999999999999997}</pre>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+<div class="jp-Cell-inputWrapper"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>We're going to place weights depending on how high a player placed to calculate our values for ranking.</p>
+
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">before_players</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 1004&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">before_players</span> <span class="o">=</span> <span class="n">before_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 1000&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">before_players</span> <span class="o">=</span> <span class="n">before_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 6126&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">before_players</span> <span class="o">=</span> <span class="n">before_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 1028&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">before_players</span> <span class="o">=</span> <span class="n">before_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 16342&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">before_players</span> <span class="o">=</span> <span class="n">before_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 4465&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">before_players</span> <span class="o">=</span> <span class="n">before_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">before_players</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
+
+
+
+<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/html">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>game</th>
+      <th>player_id</th>
+      <th>tag</th>
+      <th>all_tags</th>
+      <th>prefixes</th>
+      <th>social</th>
+      <th>country</th>
+      <th>state</th>
+      <th>region</th>
+      <th>c_country</th>
+      <th>c_state</th>
+      <th>c_region</th>
+      <th>placings</th>
+      <th>characters</th>
+      <th>alias</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>1004</td>
+      <td>Hungrybox</td>
+      <td>["Juanthefatty", "Liquid`Hungrybox", "Liquid` ...</td>
+      <td>["Liquid"]</td>
+      <td>{"twitter": ["LiquidHbox"]}</td>
+      <td>United States</td>
+      <td>FL</td>
+      <td>None</td>
+      <td>US</td>
+      <td>CA</td>
+      <td>Fountain Valley</td>
+      <td>[{"key": "slippi-champions-league-week-1__mele...</td>
+      <td>{"melee/jigglypuff": 3043, "melee/ness": 8, "m...</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>1000</td>
+      <td>Mang0</td>
+      <td>["C9 | Mango", "Mango", "C9. Mango", "C9|Mango...</td>
+      <td>["C9"]</td>
+      <td>{"twitter": ["C9Mang0"]}</td>
+      <td>United States</td>
+      <td>CA</td>
+      <td>SoCal</td>
+      <td>US</td>
+      <td>CA</td>
+      <td>Los Angeles</td>
+      <td>[{"key": "slippi-champions-league-week-1__mele...</td>
+      <td>{"melee/falco": 644, "melee/fox": 436, "melee/...</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>6126</td>
+      <td>Zain</td>
+      <td>["Zain", "DontTestMe"]</td>
+      <td>["PG"]</td>
+      <td>{"twitter": ["PG_Zain"]}</td>
+      <td>United States</td>
+      <td>VA</td>
+      <td>None</td>
+      <td>US</td>
+      <td>CA</td>
+      <td></td>
+      <td>[{"key": "slippi-champions-league-week-1__mele...</td>
+      <td>{"melee/marth": 574, "melee/pichu": 1, "melee/...</td>
+      <td>DontTestMe</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>1028</td>
+      <td>Wizzrobe</td>
+      <td>["Wizzzrobe", "COG | Wizzrobe", "COG Wizzrobe"...</td>
+      <td>["Envy", "ExG"]</td>
+      <td>{"twitter": ["Wizzrobe"]}</td>
+      <td>United States</td>
+      <td>FL</td>
+      <td>None</td>
+      <td>US</td>
+      <td>CA</td>
+      <td></td>
+      <td>[{"key": "slippi-champions-league-week-1__mele...</td>
+      <td>{"melee/captainfalcon": 708}</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>16342</td>
+      <td>Axe</td>
+      <td>["Axe09", "Tempo | Axe", "MOR | Axe", "Axe", "...</td>
+      <td>["Tempo"]</td>
+      <td>{"twitter": ["TempoAxe"]}</td>
+      <td>United States</td>
+      <td>AZ</td>
+      <td>None</td>
+      <td>US</td>
+      <td>CA</td>
+      <td>Los Angeles</td>
+      <td>[{"key": "slippi-champions-league-week-1__mele...</td>
+      <td>{"melee/pikachu": 761, "melee/falco": 64, "mel...</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>4465</td>
+      <td>Leffen</td>
+      <td>["TSM | Leffen", "Leffen", "TSM|Leffen", "TSM ...</td>
+      <td>["TSM"]</td>
+      <td>{"twitter": ["tsm_leffen", "TSM_Leffen"]}</td>
+      <td>Sweden</td>
+      <td></td>
+      <td></td>
+      <td>US</td>
+      <td>CA</td>
+      <td>Los Angeles</td>
+      <td>[{"key": "httpsparagonchallongecomla_2015_mele...</td>
+      <td>{"melee/fox": 906, "melee/marth": 4, "melee/do...</td>
+      <td>None</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+<div class="jp-Cell-inputWrapper"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>Our way of quantifying placements leaves us with a lot of ties, since if a player gets first place the others will have to grab the lower placements and so on. Then to fix this we can use 2018's results as a base and assign base values to each player.</p>
+
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># 2018 rankings</span>
+<span class="c1"># Hungrybox - 1</span>
+<span class="c1"># Mang0 - 5</span>
+<span class="c1"># Zain - 7</span>
+<span class="c1"># Wizzrobe - 8</span>
+<span class="c1"># Axe - 10</span>
+<span class="c1"># Leffen - 3</span>
+
+<span class="c1"># base value added will be:</span>
+<span class="c1"># Hungrybox - 10</span>
+<span class="c1"># Mang0 - 6</span>
+<span class="c1"># Zain - 5</span>
+<span class="c1"># Wizzrobe - 4</span>
+<span class="c1"># Axe - 2</span>
+<span class="c1"># Leffen - 9</span>
+
+<span class="n">to_add</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">9</span><span class="p">]</span>
+<span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">before_top</span><span class="p">:</span>
+    <span class="n">before_top</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">to_add</span><span class="p">[</span><span class="n">count</span><span class="p">]</span>
+    <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+<span class="n">before_top</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
+
+
+
+
+<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
+<pre>{&#39;1000&#39;: 18.1,
+ &#39;1004&#39;: 19.200000000000003,
+ &#39;6126&#39;: 7.699999999999999,
+ &#39;1028&#39;: 6.699999999999999,
+ &#39;16342&#39;: 4.699999999999999,
+ &#39;4465&#39;: 11.7}</pre>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+<div class="jp-Cell-inputWrapper"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>Now our ranking becomes Hungrybox, Mang0, Leffen, Zain, Wizzrobe, and Axe. The actual 2019 ranking is Hungrybox, Leffen, Mang0, Axe, Wizzrobe, and Zain, so we managed to get the right people in the top 6 and the max error was +- 2 places. Even though the actual ranking takes player and community opinion into account, it seems that showing results is a core component to the rankings.</p>
+
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">after_top</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
+
+
+
+
+<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
+<pre>{&#39;1004&#39;: 8.1,
+ &#39;261464&#39;: 2.6999999999999997,
+ &#39;4465&#39;: 2.6999999999999997,
+ &#39;6126&#39;: 2.6999999999999997,
+ &#39;1017&#39;: 2.6999999999999997,
+ &#39;53365&#39;: 2.6999999999999997,
+ &#39;1000&#39;: 2.6999999999999997,
+ &#39;585236&#39;: 2.6999999999999997,
+ &#39;223213&#39;: 2.6999999999999997,
+ &#39;1019&#39;: 2.6999999999999997,
+ &#39;19554&#39;: 5.3999999999999995,
+ &#39;1028&#39;: 2.6999999999999997,
+ &#39;21553&#39;: 2.6999999999999997,
+ &#39;6544&#39;: 2.6999999999999997,
+ &#39;3357&#39;: 2.6999999999999997}</pre>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">after_players</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 261464&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">after_players</span> <span class="o">=</span> <span class="n">after_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 1017&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">after_players</span> <span class="o">=</span> <span class="n">after_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 53365&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">after_players</span> <span class="o">=</span> <span class="n">after_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 585236&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">after_players</span> <span class="o">=</span> <span class="n">after_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 223213&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">after_players</span> <span class="o">=</span> <span class="n">after_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 1019&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">after_players</span> <span class="o">=</span> <span class="n">after_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 19554&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">after_players</span> <span class="o">=</span> <span class="n">after_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 21553&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">after_players</span> <span class="o">=</span> <span class="n">after_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 6544&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">after_players</span> <span class="o">=</span> <span class="n">after_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 3357&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">after_players</span> <span class="o">=</span> <span class="n">after_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">after_players</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
+
+
+
+<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/html">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>game</th>
+      <th>player_id</th>
+      <th>tag</th>
+      <th>all_tags</th>
+      <th>prefixes</th>
+      <th>social</th>
+      <th>country</th>
+      <th>state</th>
+      <th>region</th>
+      <th>c_country</th>
+      <th>c_state</th>
+      <th>c_region</th>
+      <th>placings</th>
+      <th>characters</th>
+      <th>alias</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>261464</td>
+      <td>Pipsqueak</td>
+      <td>["Pipsqueak"]</td>
+      <td>["DC", "FANA", "PS", "Melee Stats"]</td>
+      <td>{"twitter": ["DC_Pipsqueak"]}</td>
+      <td>Sweden</td>
+      <td>None</td>
+      <td>None</td>
+      <td>US</td>
+      <td>CA</td>
+      <td>Stockholm</td>
+      <td>[{"key": "heir-5__melee-singles", "placing": 3...</td>
+      <td>{"melee/fox": 598, "melee/marth": 4, "melee/sh...</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>1017</td>
+      <td>S2J</td>
+      <td>["S2j", "S2J", "s2j"]</td>
+      <td>["Tempo", "bc", "HLCG", "HLC"]</td>
+      <td>{"twitter": ["Tempo_S2J", "johnny_S2J"]}</td>
+      <td>United States</td>
+      <td>CA</td>
+      <td>SoCal</td>
+      <td>US</td>
+      <td>CA</td>
+      <td>Fountain Valley</td>
+      <td>[{"key": "slippi-champions-league-week-1__mele...</td>
+      <td>{"melee/captainfalcon": 1607, "melee/falco": 9...</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>53365</td>
+      <td>Ringler</td>
+      <td>["Ringler"]</td>
+      <td>[]</td>
+      <td>{"twitter": ["Ringler_SSBM"]}</td>
+      <td>United States</td>
+      <td>CA</td>
+      <td>SoCal</td>
+      <td>US</td>
+      <td>CA</td>
+      <td>Burbank</td>
+      <td>[{"key": "evo-2016", "placing": 193, "seed": n...</td>
+      <td>{"melee/donkeykong": 262}</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>585236</td>
+      <td>Amrak</td>
+      <td>["Amrak"]</td>
+      <td>["306", "Galint | 306"]</td>
+      <td>{"twitter": []}</td>
+      <td>Canada</td>
+      <td>BC</td>
+      <td>None</td>
+      <td>CA</td>
+      <td>BC</td>
+      <td>Vancouver</td>
+      <td>[{"key": "don-t-park-on-the-grass-2018-1__mele...</td>
+      <td>{"melee/fox": 608}</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>223213</td>
+      <td>Sock</td>
+      <td>["Sock"]</td>
+      <td>["ATH", "GZ", "OVERT", "MF"]</td>
+      <td>{"twitter": ["SockSSBM"]}</td>
+      <td>Australia</td>
+      <td>NSW</td>
+      <td>None</td>
+      <td>US</td>
+      <td>CA</td>
+      <td>Fountain Valley</td>
+      <td>[{"key": "nimbus-69__melee-singles", "placing"...</td>
+      <td>{"melee/fox": 382, "melee/marth": 32, "melee/s...</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>1019</td>
+      <td>SFAT</td>
+      <td>["SFAT", "MIOM | SFAT", "MIOM|SFAT", "MIOM SFA...</td>
+      <td>["CLG.", "CLG"]</td>
+      <td>{"twitter": ["SFAT"]}</td>
+      <td>United States</td>
+      <td>CA</td>
+      <td>NorCal</td>
+      <td>US</td>
+      <td>CA</td>
+      <td>Fountain Valley</td>
+      <td>[{"key": "slippi-champions-league-week-1__mele...</td>
+      <td>{"melee/fox": 1699, "melee/falco": 41, "melee/...</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>19554</td>
+      <td>iBDW</td>
+      <td>["iBDW"]</td>
+      <td>["Panda", "MnT", "Ace", "PG"]</td>
+      <td>{"twitter": ["SSBMiBDW", "iBDWSSBM"]}</td>
+      <td>United States</td>
+      <td>NY</td>
+      <td>None</td>
+      <td>US</td>
+      <td>CA</td>
+      <td></td>
+      <td>[{"key": "slippi-champions-league-week-1__mele...</td>
+      <td>{"melee/fox": 951, "melee/sheik": 57, "melee/f...</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>21553</td>
+      <td>Nicki</td>
+      <td>["Nicki"]</td>
+      <td>["CGN", "PS"]</td>
+      <td>{"twitter": ["leffenfanboy"]}</td>
+      <td>Germany</td>
+      <td>None</td>
+      <td>None</td>
+      <td>DE</td>
+      <td>Berlin</td>
+      <td>Berlin</td>
+      <td>[{"key": "heir-5__melee-singles", "placing": 7...</td>
+      <td>{"melee/fox": 320, "melee/iceclimbers": 16, "m...</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>6544</td>
+      <td>Magi</td>
+      <td>["Magi"]</td>
+      <td>["bc"]</td>
+      <td>{"twitter": ["SSBMagi", "STSMagi"]}</td>
+      <td>United States</td>
+      <td>LA</td>
+      <td>None</td>
+      <td>US</td>
+      <td>CA</td>
+      <td>Oakland</td>
+      <td>[{"key": "slippi-champions-league-week-4__mele...</td>
+      <td>{"melee/falco": 539}</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>3357</td>
+      <td>Spark</td>
+      <td>["Spark"]</td>
+      <td>["IluZ", "ULT", "TA"]</td>
+      <td>{"twitter": ["Spark_SSBM", "SSBM_Spark"]}</td>
+      <td>United States</td>
+      <td>CA</td>
+      <td>NorCal</td>
+      <td>US</td>
+      <td>CA</td>
+      <td>Oakland</td>
+      <td>[{"key": "slippi-champions-league-week-1__mele...</td>
+      <td>{"melee/sheik": 429, "melee/marth": 3, "melee/...</td>
+      <td>None</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># 2019 rankings</span>
+<span class="c1"># Hungrybox - 1</span>
+<span class="c1"># Pipsqueak - 0</span>
+<span class="c1"># Leffen - 2</span>
+<span class="c1"># Zain - 6</span>
+<span class="c1"># S2J - 11</span>
+<span class="c1"># Ringler - 0</span>
+<span class="c1"># Mang0 - 3</span>
+<span class="c1"># Amrak - 0</span>
+<span class="c1"># Sock - 0</span>
+<span class="c1"># SFAT - 13</span>
+<span class="c1"># iBDW - 9</span>
+<span class="c1"># Wizzrobe - 5</span>
+<span class="c1"># Nicki - 83</span>
+<span class="c1"># Magi - 43</span>
+<span class="c1"># Spark - 22</span>
+
+<span class="c1"># base value added will be:</span>
+<span class="c1"># Hungrybox - 20</span>
+<span class="c1"># Pipsqueak - 0</span>
+<span class="c1"># Leffen - 19</span>
+<span class="c1"># Zain - 14</span>
+<span class="c1"># S2J - 11</span>
+<span class="c1"># Ringler - 0</span>
+<span class="c1"># Mang0 - 17</span>
+<span class="c1"># Amrak - 0</span>
+<span class="c1"># Sock - 0</span>
+<span class="c1"># SFAT - 10</span>
+<span class="c1"># iBDW - 12</span>
+<span class="c1"># Wizzrobe - 15</span>
+<span class="c1"># Nicki - 1</span>
+<span class="c1"># Magi - 3</span>
+<span class="c1"># Spark - 6</span>
+
+<span class="n">to_add</span> <span class="o">=</span> <span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">19</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">]</span>
+<span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">after_top</span><span class="p">:</span>
+    <span class="n">after_top</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">to_add</span><span class="p">[</span><span class="n">count</span><span class="p">]</span>
+    <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+<span class="n">after_top</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
+
+
+
+
+<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
+<pre>{&#39;1004&#39;: 28.1,
+ &#39;261464&#39;: 2.6999999999999997,
+ &#39;4465&#39;: 21.7,
+ &#39;6126&#39;: 16.7,
+ &#39;1017&#39;: 13.7,
+ &#39;53365&#39;: 2.6999999999999997,
+ &#39;1000&#39;: 19.7,
+ &#39;585236&#39;: 2.6999999999999997,
+ &#39;223213&#39;: 2.6999999999999997,
+ &#39;1019&#39;: 12.7,
+ &#39;19554&#39;: 17.4,
+ &#39;1028&#39;: 17.7,
+ &#39;21553&#39;: 3.6999999999999997,
+ &#39;6544&#39;: 5.699999999999999,
+ &#39;3357&#39;: 8.7}</pre>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+<div class="jp-Cell-inputWrapper"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>Next we can use the 2019 rankings as a base for our own version of a 2020 ranking. The top 6 comes out to Hungrybox, Leffen, Mang0, Wizzrobe, iBDW, and Zain. As we learned earlier, iBDW, who was a mjor beneficiary of Slippi, was only at 9th in 2019 was able to move into 5th based on our methods.</p>
+
+</div>
+</div>
+<div class="jp-Cell-inputWrapper"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>In conclusion, we can see that Slippi has allowed for big gains for those who were stuck behind the top dogs, and its impact has been noticable in tournament results.</p>
 
 </div>
 </div>
