@@ -14259,7 +14259,99 @@ a.anchor-link {
 
 <div class="jp-Cell-inputWrapper"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
-<p>Final Project</p>
+<p>Melee: Impact of the Slippi Era<br>
+Vicki Wong</p>
+
+</div>
+</div>
+<div class="jp-Cell-inputWrapper"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>Super Smash Bros. Melee is a fighting game released on the Nintendo GameCube in 2001. The game has maintained an active competitive community to this day, enough to comprise a history of tournament sets spanning several years. However, its age meant that compared to modern titles, it was more cumbersome to organize and play practice matches, especially online. In the midst of the pandemic, the summer of 2020, a project called Slippi updated, which modded the game to offer online matchmaking built in, rollback netcode to handle delay from online play, and detailed replay data for analysis. This allowed players to reliably and easily practice online at any time when playing in person wasn't possible due to corona, which had then put a complete halt to major tournaments. Paired with the availability of personal statistics, it is believed that Slippi granted players the perfect opportunity to endlessly grind and improve their skills, provided they were willing to put in the time. In this tutorial I will be looking at tournament results prior to and after Slippi to see if this had a significant impact on the rankings of the top players.</p>
+
+</div>
+</div>
+<div class="jp-Cell-inputWrapper"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>smashdata.gg is an open database that records tournament results, and I will be using their sqlite database to aid me in my analysis. Slippi came out with their major update adding rollback netcode on June 22, 2020, resulting in a mass influx of new users, so this day will be the divider for our data.</p>
+
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs  ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">sqlite3</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="c1"># dataset available at https://github.com/smashdata/ThePlayerDatabase</span>
+<span class="c1"># download the .zip file for Melee, and unzip to get the .db file</span>
+<span class="n">file</span> <span class="o">=</span> <span class="s1">&#39;melee_player_database.db&#39;</span>
+<span class="n">con</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+
+<span class="c1"># unix timestamp of June 22, 2020 is 1592798400</span>
+<span class="c1"># unix timestamp of January 1, 2018 is 1514782800</span>
+<span class="n">before_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM tournament_info WHERE start &lt; 1592798400&#39;</span>
+<span class="n">before</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">before_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">after_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM tournament_info WHERE start &gt;= 1592798400&#39;</span>
+<span class="n">after</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">after_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+</div>
+<div class="jp-Cell-inputWrapper"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>Next, we want to see who had consistent tournament placings by looking at the top 4 players from every tournament. For each player, the player id and placing are stored as a pair, and we'll look up the player id from another table at the end.</p>
+
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs  ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">re</span>
+
+<span class="n">before_top</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="c1"># store the top 4</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">before</span><span class="p">[</span><span class="s1">&#39;placings&#39;</span><span class="p">]:</span>
+    <span class="c1"># use regex to search the string</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">one</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">(\d+)</span><span class="se">\&quot;</span><span class="s2">, [1|2|3|4]]&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">one</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">before_top</span><span class="p">:</span>
+                <span class="n">before_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">before_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+<span class="n">after_top</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">after</span><span class="p">[</span><span class="s1">&#39;placings&#39;</span><span class="p">]:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">one</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">(\d+)</span><span class="se">\&quot;</span><span class="s2">, [1|2|3|4]]&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">one</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">after_top</span><span class="p">:</span>
+                <span class="n">after_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">after_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">pass</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+</div>
+<div class="jp-Cell-inputWrapper"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>One thing to keep in mind is that this dataset has data starting from 2015 and more data from recent times. From this snippet of wins after 2020, we can see that a player with the player id 65777 has placed in the top 4 a total of 299 times. Is this evidence of a player rising up through the ranks then? Well, a search for this player id reveals that it belongs to bobby big ballz. He was ranked by pgstats.com at 80th place worldwide, so it's not a situation where someone has suddenly jumped up more than 70 places, but simply that the number of tournaments he plays in is much greater, because we made no distinction between the type of tournament players had to place in. This means that just comparing the raw numbers of how many wins players have or how many new players placed won't be useful for our analysis, considering the fact that recent tournaments are more represented.</p>
 
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
@@ -14268,7 +14360,10 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;hello&#39;</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># looking up our player id</span>
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 65777&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">player</span>
 </pre></div>
 
      </div>
@@ -14284,19 +14379,721 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 
     
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
+
+
+
+<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/html">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>game</th>
+      <th>player_id</th>
+      <th>tag</th>
+      <th>all_tags</th>
+      <th>prefixes</th>
+      <th>social</th>
+      <th>country</th>
+      <th>state</th>
+      <th>region</th>
+      <th>c_country</th>
+      <th>c_state</th>
+      <th>c_region</th>
+      <th>placings</th>
+      <th>characters</th>
+      <th>alias</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>65777</td>
+      <td>bobby big ballz</td>
+      <td>["bobby big ballz"]</td>
+      <td>["EMG"]</td>
+      <td>{"twitter": ["bobbybigballz19"]}</td>
+      <td>United States</td>
+      <td>TX</td>
+      <td>None</td>
+      <td>US</td>
+      <td>CA</td>
+      <td>Fountain Valley</td>
+      <td>[{"key": "slippi-champions-league-week-3__mele...</td>
+      <td>{"melee/falco": 8191, "melee/jigglypuff": 86, ...</td>
+      <td>None</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+<div class="jp-Cell-inputWrapper"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>Instead, let's only compare the results from major tournaments, where it will be required to beat highly skilled players in order to place in the top 4. Additionally, since we want to see the difference before and after Slippi, the period for the time before will be from 2018-2020.</p>
+
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># filtering based on list at https://liquipedia.net/smash/Major_Tournaments/Melee</span>
+
+<span class="c1"># reduce period to 2018-2020</span>
+<span class="n">before_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM tournament_info WHERE start &lt; 1592798400 AND start &gt;= 1514782800&#39;</span>
+<span class="n">before</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">before_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+
+<span class="n">after_top</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">after</span><span class="p">[</span><span class="s1">&#39;placings&#39;</span><span class="p">],</span> <span class="n">after</span><span class="p">[</span><span class="s1">&#39;cleaned_name&#39;</span><span class="p">]):</span>
+    <span class="n">after_tourney</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Line|Ludwig|MIXUP|Slippi Champions League|Smash Summit|Valhalla|Upset|Loko|Galint|Riptide|SWT 2021|SAME</span><span class="se">\</span>
+<span class="s1">        |Mainstage|GENESIS|Pound|Double Down&#39;</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+    <span class="c1"># check if the tournament is a major and only process if it is</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">after_tourney</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">one</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">(\d+)</span><span class="se">\&quot;</span><span class="s2">, [1|2|3|4]]&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">one</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">after_top</span><span class="p">:</span>
+                    <span class="n">after_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">after_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+<span class="n">before_top</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">before</span><span class="p">[</span><span class="s1">&#39;placings&#39;</span><span class="p">],</span> <span class="n">before</span><span class="p">[</span><span class="s1">&#39;cleaned_name&#39;</span><span class="p">]):</span>
+    <span class="n">before_tourney</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Smash Summit|GENESIS|Mango</span><span class="se">\&#39;</span><span class="s1">s|Big House|Mainstage|Shine|Super Smash Con|Low|CEO|Splash|Level|Pound|GameTyrant</span><span class="se">\</span>
+<span class="s1">        |Heir|EVO|Flatiron|Bloom|Enthusiast&#39;</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">before_tourney</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">one</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">(\d+)</span><span class="se">\&quot;</span><span class="s2">, [1|2|3|4]]&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">one</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">before_top</span><span class="p">:</span>
+                    <span class="n">before_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">before_top</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+<span class="n">before_top</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
+
+
+
+
+<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
+<pre>{&#39;1004&#39;: 23,
+ &#39;1000&#39;: 10,
+ &#39;15990&#39;: 9,
+ &#39;6126&#39;: 11,
+ &#39;19573&#39;: 1,
+ &#39;1008&#39;: 1,
+ &#39;4465&#39;: 13,
+ &#39;1017&#39;: 3,
+ &#39;6189&#39;: 6,
+ &#39;1012&#39;: 2,
+ &#39;1003&#39;: 5,
+ &#39;23458&#39;: 1,
+ &#39;1028&#39;: 7,
+ &#39;16342&#39;: 6,
+ &#39;4401&#39;: 1,
+ &#39;1021&#39;: 2,
+ &#39;1019&#39;: 3,
+ &#39;3560&#39;: 1,
+ &#39;19554&#39;: 3,
+ &#39;15634&#39;: 1,
+ &#39;15179&#39;: 1,
+ &#39;1016&#39;: 1,
+ &#39;4107&#39;: 2,
+ &#39;1007&#39;: 1,
+ &#39;3665&#39;: 1,
+ &#39;26153&#39;: 1,
+ &#39;18840&#39;: 1,
+ &#39;14282&#39;: 1,
+ &#39;143153&#39;: 2,
+ &#39;318568&#39;: 2,
+ &#39;694497&#39;: 2,
+ &#39;14593&#39;: 1,
+ &#39;7731&#39;: 1,
+ &#39;1077&#39;: 1,
+ &#39;1009&#39;: 1}</pre>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+<div class="jp-Cell-inputWrapper"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>From 2018-2020, the player with the most top 4 placements is Hungrybox, with a total of 23. Next are Leffen with 13, Zain with 11, and Mang0 with 10.</p>
+
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">before_players</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 1004&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">before_players</span> <span class="o">=</span> <span class="n">before_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 4465&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">before_players</span> <span class="o">=</span> <span class="n">before_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 6126&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">before_players</span> <span class="o">=</span> <span class="n">before_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 1000&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">before_players</span> <span class="o">=</span> <span class="n">before_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">before_players</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
+
+
+
+<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/html">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>game</th>
+      <th>player_id</th>
+      <th>tag</th>
+      <th>all_tags</th>
+      <th>prefixes</th>
+      <th>social</th>
+      <th>country</th>
+      <th>state</th>
+      <th>region</th>
+      <th>c_country</th>
+      <th>c_state</th>
+      <th>c_region</th>
+      <th>placings</th>
+      <th>characters</th>
+      <th>alias</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>1004</td>
+      <td>Hungrybox</td>
+      <td>["Juanthefatty", "Liquid`Hungrybox", "Liquid` ...</td>
+      <td>["Liquid"]</td>
+      <td>{"twitter": ["LiquidHbox"]}</td>
+      <td>United States</td>
+      <td>FL</td>
+      <td>None</td>
+      <td>US</td>
+      <td>CA</td>
+      <td>Fountain Valley</td>
+      <td>[{"key": "slippi-champions-league-week-1__mele...</td>
+      <td>{"melee/jigglypuff": 3043, "melee/ness": 8, "m...</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>4465</td>
+      <td>Leffen</td>
+      <td>["TSM | Leffen", "Leffen", "TSM|Leffen", "TSM ...</td>
+      <td>["TSM"]</td>
+      <td>{"twitter": ["tsm_leffen", "TSM_Leffen"]}</td>
+      <td>Sweden</td>
+      <td></td>
+      <td></td>
+      <td>US</td>
+      <td>CA</td>
+      <td>Los Angeles</td>
+      <td>[{"key": "httpsparagonchallongecomla_2015_mele...</td>
+      <td>{"melee/fox": 906, "melee/marth": 4, "melee/do...</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>6126</td>
+      <td>Zain</td>
+      <td>["Zain", "DontTestMe"]</td>
+      <td>["PG"]</td>
+      <td>{"twitter": ["PG_Zain"]}</td>
+      <td>United States</td>
+      <td>VA</td>
+      <td>None</td>
+      <td>US</td>
+      <td>CA</td>
+      <td></td>
+      <td>[{"key": "slippi-champions-league-week-1__mele...</td>
+      <td>{"melee/marth": 574, "melee/pichu": 1, "melee/...</td>
+      <td>DontTestMe</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>1000</td>
+      <td>Mang0</td>
+      <td>["C9 | Mango", "Mango", "C9. Mango", "C9|Mango...</td>
+      <td>["C9"]</td>
+      <td>{"twitter": ["C9Mang0"]}</td>
+      <td>United States</td>
+      <td>CA</td>
+      <td>SoCal</td>
+      <td>US</td>
+      <td>CA</td>
+      <td>Los Angeles</td>
+      <td>[{"key": "slippi-champions-league-week-1__mele...</td>
+      <td>{"melee/falco": 644, "melee/fox": 436, "melee/...</td>
+      <td>None</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">after_top</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
+
+
+
+
+<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
+<pre>{&#39;1000&#39;: 9,
+ &#39;6126&#39;: 11,
+ &#39;4107&#39;: 6,
+ &#39;19554&#39;: 11,
+ &#39;3359&#39;: 3,
+ &#39;3357&#39;: 2,
+ &#39;15990&#39;: 5,
+ &#39;1019&#39;: 6,
+ &#39;3561&#39;: 2,
+ &#39;1004&#39;: 8,
+ &#39;1028&#39;: 4,
+ &#39;29829&#39;: 1,
+ &#39;1036&#39;: 1,
+ &#39;4648&#39;: 1,
+ &#39;3954&#39;: 1,
+ &#39;22900&#39;: 2,
+ &#39;5563&#39;: 1,
+ &#39;4465&#39;: 3,
+ &#39;261464&#39;: 2,
+ &#39;16342&#39;: 1,
+ &#39;1007&#39;: 1,
+ &#39;282096&#39;: 3,
+ &#39;11139&#39;: 3,
+ &#39;686245&#39;: 1,
+ &#39;21553&#39;: 2,
+ &#39;1017&#39;: 2,
+ &#39;1039&#39;: 1,
+ &#39;5080&#39;: 4,
+ &#39;3299&#39;: 1,
+ &#39;1084&#39;: 1,
+ &#39;53365&#39;: 1,
+ &#39;51240&#39;: 2,
+ &#39;61873&#39;: 1,
+ &#39;132938&#39;: 1,
+ &#39;32650&#39;: 1,
+ &#39;585236&#39;: 2,
+ &#39;1164314&#39;: 1,
+ &#39;223213&#39;: 1,
+ &#39;452271&#39;: 1,
+ &#39;1847536&#39;: 1,
+ &#39;49131&#39;: 2,
+ &#39;65777&#39;: 3,
+ &#39;55110&#39;: 2,
+ &#39;754351&#39;: 1,
+ &#39;23920&#39;: 1,
+ &#39;26750&#39;: 2,
+ &#39;1853889&#39;: 1,
+ &#39;1400299&#39;: 1,
+ &#39;13932&#39;: 2,
+ &#39;13748&#39;: 1,
+ &#39;72157&#39;: 1,
+ &#39;6544&#39;: 1,
+ &#39;12796&#39;: 1,
+ &#39;7962&#39;: 2,
+ &#39;694497&#39;: 1,
+ &#39;709843&#39;: 1,
+ &#39;324561&#39;: 1,
+ &#39;133666&#39;: 1,
+ &#39;11937&#39;: 1,
+ &#39;254285&#39;: 1,
+ &#39;129821&#39;: 1,
+ &#39;147409&#39;: 1,
+ &#39;229065&#39;: 1,
+ &#39;35318&#39;: 1,
+ &#39;35720&#39;: 1,
+ &#39;2744323&#39;: 1,
+ &#39;139305&#39;: 1,
+ &#39;10591&#39;: 1,
+ &#39;4692&#39;: 1,
+ &#39;32243&#39;: 1,
+ &#39;68163&#39;: 1,
+ &#39;1114034&#39;: 1,
+ &#39;1050049&#39;: 1,
+ &#39;1021&#39;: 1,
+ &#39;15634&#39;: 1,
+ &#39;325974&#39;: 1,
+ &#39;21772&#39;: 1,
+ &#39;51373&#39;: 1}</pre>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+<div class="jp-Cell-inputWrapper"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>From 2020-2022, the players with the most top 4 placements are Zain and iBDW, both with a total of 11. Next are Mang0 with 9 and Hungrybox with 8. Compared to Hungrybox's relative dominance in the previous period with 10 placements over Leffen, now the competition is a lot more evenly balanced. The range within the top 4 in 2018-2020 was 23 - 10 = 13 and has been flattened in 2020-2022 to 11 - 8 = 3. iBDW had the most drastic change, only managing 3 placements in 2018-2020, far behind the rest of the crowd, and shooting up to tie for first in 2020-2022. Zain, iBDW, and Mang0 are players known to practice a lot with Slippi, while Hungrybox has had to focus on other priorities.</p>
+
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">after_players</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 6126&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">after_players</span> <span class="o">=</span> <span class="n">after_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 19554&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">after_players</span> <span class="o">=</span> <span class="n">after_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 1000&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">after_players</span> <span class="o">=</span> <span class="n">after_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">player_query</span> <span class="o">=</span> <span class="s1">&#39;SELECT * FROM players WHERE player_id == 1004&#39;</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">player_query</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span>
+<span class="n">after_players</span> <span class="o">=</span> <span class="n">after_players</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">player</span><span class="p">)</span>
+
+<span class="n">after_players</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
+
+
+
+<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/html">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>game</th>
+      <th>player_id</th>
+      <th>tag</th>
+      <th>all_tags</th>
+      <th>prefixes</th>
+      <th>social</th>
+      <th>country</th>
+      <th>state</th>
+      <th>region</th>
+      <th>c_country</th>
+      <th>c_state</th>
+      <th>c_region</th>
+      <th>placings</th>
+      <th>characters</th>
+      <th>alias</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>6126</td>
+      <td>Zain</td>
+      <td>["Zain", "DontTestMe"]</td>
+      <td>["PG"]</td>
+      <td>{"twitter": ["PG_Zain"]}</td>
+      <td>United States</td>
+      <td>VA</td>
+      <td>None</td>
+      <td>US</td>
+      <td>CA</td>
+      <td></td>
+      <td>[{"key": "slippi-champions-league-week-1__mele...</td>
+      <td>{"melee/marth": 574, "melee/pichu": 1, "melee/...</td>
+      <td>DontTestMe</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>19554</td>
+      <td>iBDW</td>
+      <td>["iBDW"]</td>
+      <td>["Panda", "MnT", "Ace", "PG"]</td>
+      <td>{"twitter": ["SSBMiBDW", "iBDWSSBM"]}</td>
+      <td>United States</td>
+      <td>NY</td>
+      <td>None</td>
+      <td>US</td>
+      <td>CA</td>
+      <td></td>
+      <td>[{"key": "slippi-champions-league-week-1__mele...</td>
+      <td>{"melee/fox": 951, "melee/sheik": 57, "melee/f...</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>1000</td>
+      <td>Mang0</td>
+      <td>["C9 | Mango", "Mango", "C9. Mango", "C9|Mango...</td>
+      <td>["C9"]</td>
+      <td>{"twitter": ["C9Mang0"]}</td>
+      <td>United States</td>
+      <td>CA</td>
+      <td>SoCal</td>
+      <td>US</td>
+      <td>CA</td>
+      <td>Los Angeles</td>
+      <td>[{"key": "slippi-champions-league-week-1__mele...</td>
+      <td>{"melee/falco": 644, "melee/fox": 436, "melee/...</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>melee</td>
+      <td>1004</td>
+      <td>Hungrybox</td>
+      <td>["Juanthefatty", "Liquid`Hungrybox", "Liquid` ...</td>
+      <td>["Liquid"]</td>
+      <td>{"twitter": ["LiquidHbox"]}</td>
+      <td>United States</td>
+      <td>FL</td>
+      <td>None</td>
+      <td>US</td>
+      <td>CA</td>
+      <td>Fountain Valley</td>
+      <td>[{"key": "slippi-champions-league-week-1__mele...</td>
+      <td>{"melee/jigglypuff": 3043, "melee/ness": 8, "m...</td>
+      <td>None</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="c1"># making table for graph</span>
+<span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Hungrybox&#39;</span><span class="p">,</span> <span class="s1">&#39;Leffen&#39;</span><span class="p">,</span> <span class="s1">&#39;Zain&#39;</span><span class="p">,</span> <span class="s1">&#39;Mang0&#39;</span><span class="p">,</span> <span class="s1">&#39;iBDW&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;before&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">23</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+        <span class="s1">&#39;after&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">11</span><span class="p">]}</span>
+<span class="n">change</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+
+<span class="c1"># create graph</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Players&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Placements&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Placements vs Players&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">change</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">],</span> <span class="n">change</span><span class="p">[</span><span class="s1">&#39;before&#39;</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Before Slippi&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">change</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">],</span> <span class="n">change</span><span class="p">[</span><span class="s1">&#39;after&#39;</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;After Slippi&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
+
+
+
+
+<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
+<pre>&lt;matplotlib.legend.Legend at 0x7fa806543730&gt;</pre>
+</div>
+
+</div>
+
+<div class="jp-OutputArea-child">
+
+    
     <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 
 
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre>hello
-</pre>
-</div>
+
+
+<div class="jp-RenderedImage jp-OutputArea-output ">
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYgAAAEWCAYAAAB8LwAVAAAAOXRFWHRTb2Z0d2FyZQBNYXRwbG90bGliIHZlcnNpb24zLjMuMywgaHR0cHM6Ly9tYXRwbG90bGliLm9yZy/Il7ecAAAACXBIWXMAAAsTAAALEwEAmpwYAABIrklEQVR4nO3dd3iUVfbA8e9JIYUSIAEk9CYqvTd7AVTEjiCKZVfEXln1t7uuZXd1dXddUbGsBVwRQVRsqKBYqNJ7kWKAAEIIHQKknN8f9w2ZhEkjmcwkOZ/nmSczb73zJpkz9733niuqijHGGJNXWLALYIwxJjRZgDDGGOOXBQhjjDF+WYAwxhjjlwUIY4wxflmAMMYY45cFCBM0IvKDiPw+2OWoDOxam5NhAcIElIgkiUiaiBwUkR0i8o6IVAt2uUqbiJwrIslBLkOluNam7FiAMGXhMlWtBnQGugF/CnJ5KrKQudYiEhGsc5vSYQHClBlV3Qp8BbTNu05EWojIdBFJFZFdIjJORGr6rG8kIh+LSIq3zcs+624VkdUiskdEvhGRJj7rVETuFJF1InJARJ72zjVHRPaLyEQRqeKz/QARWSIie0Vktoi091mXJCIPi8gyEdknIhNEJFpEqnrvK9H79n5QRBJFpLuILPDOs0NE/u3vunhlH+DzOsK7Bp2947/nvee9IjJfROoF6lqLyEgR+SjP9i+JyH+853Ei8paIbBeRrSLyVxEJ99bdLCKzROQFEdkNPCEiLUXkR+967RKRCYWV3YQOCxCmzIhII+ASYLG/1cAzQCJwOtAIeMLbLxz4AtgENAUaAB94664A/g+4CqgDzADG5zl2f6AL0BP4A/AGMNQ7R1tgiHeszsDbwO1APPA68JmIRPkca5B3vGZAe+BmVT0EXAxsU9Vq3mMb8CLwoqrWAFoAE/O5NOOzy+DpB+xS1UXATUCcV9Z4YASQls9xjjvZaw28B/T3CRgRwHXA/7z1Y4EMoCXQCegL+LZt9AA2AnWBvwFPA1OBWkBD4KXCym5ChwUIUxYmi8heYCbwI/D3vBuo6npVnaaqR1U1Bfg3cI63ujvuw2ykqh5S1SOqOtNbdzvwjKquVtUM79gdfWsRwD9Udb+qrgRWAFNVdaOq7sN9y+7kbXcb8Lqq/qyqmao6FjiKCyzZRqnqNlXdDXwOdCzgfacDLUUkQVUPqurcfLZ7HxgoIrHe6+u9ZdnHiAdaemVaqKr7Czhnia61qm4HfgKu9TbvjwtWC72ay8XA/d7vYSfwAjDY5/DbVPUlVc1Q1TSv/E2AxDy/N1MOWIAwZeEKVa2pqk1U9U7vgyMXEakrIh94ty32477JJnirGwGbvACQVxPgRe/2y15gN+4bcgOfbXb4PE/z8zq7IbcJ8FD2sbzjNcIFp2y/+Tw/7LOvP78DTgXWeLeGBvjbSFXXA6uBy7wgMZCcAPE/4BvgAxHZJiLPiUhkAecs6bUGV0u4wXt+Azm1hyZAJLDd5/q8jqstZNuS53R/wP0+5onIShG5tYCymxBjAcKEimcABdp7t2RuwH2wgPvQaZxPo+cW4HbvQzH7EaOqs0+iDFuAv+U5Vqyq5r1l5c8JaZFVdZ2qDsF9gP4DmOS1V/iTfZvpcmCVFzRQ1XRVfVJVzwB6AwOAYcV/a7kUdK0BJgPtRaStd75x3vItuBpVgs/1qaGqbXzftu+JVPU3Vb1NVRNxtb3RItKyhOU3ZcQChAkV1YGDwF4RaQCM9Fk3D9gOPCsiVb2G2z7euteAx0SkDRxvRL2Wk/NfYISI9BCnqohcKiLVi7DvDiBeROKyF4jIDSJSR1WzgL3e4sx89v8Adz//DnJqD4jIeSLSzmuH2Y+7ZZPfMYqqoGuNqh4BJnnlmKeqm73l23HtCf8SkRoiEuY1eJ9DPkTkWhFp6L3cgwsgJS2/KSMWIEyoeBLXNXMf8CXwcfYKVc0ELsM1jG4GknENp6jqJ7hv5x94t0tW4O6TF5uqLsC1Q7yM+zBbD9xcxH3X4GoBG73bL4m4+/crReQgrsF6sPfh62//7cAcXC3Bt6fPKbgP6/2421A/4m4JlUS+19rHWKAdObeXsg0DqgCrcNdoElC/gHN1A372rsFnwH2q+muJSm/KjNiEQcaYvESkMbAGOKWQRnFTgVkNwhiTi4iEAQ8CH1hwqNxspKMx5jivEX0HbsxJ/yAXxwSZ3WIyxhjjl91iMsYY41eFusWUkJCgTZs2DXYxjDGm3Fi4cOEuVa3jb12FChBNmzZlwYIFwS6GMcaUGyKyKb91dovJGGOMXxYgjDHG+GUBwhhjjF8Vqg3CGBN60tPTSU5O5sgRv1lGTBmJjo6mYcOGREYWlAw4NwsQxpiASk5Opnr16jRt2hQRKXwHU+pUldTUVJKTk2nWrFmR96v0AWLy4q08/81atu1NI7FmDCP7teaKTg0K39EYUyRHjhyx4BBkIkJ8fDwpKSnF2q9SB4jJi7fy2MfLSUt32Ye37k3jsY+XA1iQMKYUWXAIvpP5HVTqRurnv1l7PDhkS0vP5Plv1gapRMYYEzoqdYDYttf/3O/5LTfGlE/h4eF07NiRDh060LlzZ2bPLnzCwVGjRnH66aczdOjQUi3L4cOHGTp0KO3ataNt27aceeaZHDx4EIBq1dwMttu2beOaa6456XP8/ve/Z9WqVSUua6W+xZRYM4atfoJBYs2YIJTGGAOBaReMiYlhyZIlAHzzzTc89thj/PjjjwXuM3r0aL766qsiN+pmZGQQEVH4R+qLL75IvXr1WL7c3c5eu3btCT2LEhMTmTRpUpHO68+bb7550vv6ClgNQkQaicj3IrLam6z8Pm/58yKyRkSWicgnIlIzn/2TRGS5iCwRkYDkzxjZrzUxkeF5zgsPXNgqEKczxhQiu11w6940lJx2wcmLt5baOfbv30+tWrWOv37++efp1q0b7du35y9/+QsAI0aMYOPGjQwcOJAXXniB3bt3c8UVV9C+fXt69uzJsmXLAHjiiScYPnw4ffv2ZdiwYaSkpHD11VfTrVs3unXrxqxZs044//bt22nQICfgtW7dmqioqFzbJCUl0bZtWwDGjBnD5ZdfTv/+/WndujVPPvnk8W1OO+00brrpJtq3b88111zD4cOHATj33HNLJe1QIGsQGcBDqrrIm9N3oYhMA6YBj6lqhoj8A3gMeCSfY5ynqrsCVcDsbyXZ31ZEIEth5fb9nHzlzhiTn6aPflnsfdLSM7l/whLun7Ak322Snr204GOkpdGxY0eOHDnC9u3bmT59OgBTp05l3bp1zJs3D1Vl4MCB/PTTT7z22mt8/fXXfP/99yQkJHDPPffQqVMnJk+ezPTp0xk2bNjxGsnChQuZOXMmMTExXH/99TzwwAOceeaZbN68mX79+rF69epcZbn11lvp27cvkyZN4oILLuCmm26iVauCv5TOmzePFStWEBsbS7du3bj00ktJSEhg7dq1vPXWW/Tp04dbb72V0aNH8/DDDxd+UYsoYDUIVd2uqou85wdw8+k2UNWpqprhbTYXaJjfMcrCFZ0aMOvR8/n12UuZdEdvIsOFd2Yl8cWybcEsljGmFGXfYlqzZg1ff/01w4YNQ1WZOnUqU6dOpVOnTnTu3Jk1a9awbt26E/afOXMmN954IwDnn38+qamp7Nu3D4CBAwcSE+NuS3/77bfcfffddOzYkYEDB7J//34OHDiQ61gdO3Zk48aNjBw5kt27d9OtW7cTgkheF110EfHx8cTExHDVVVcxc+ZMABo1akSfPn0AuOGGG44vLy1l0gYhIk2BTsDPeVbdSu4J2n0pMFVEFHhdVd/I59jDgeEAjRs3LlE5OzeuxR8vOZ0nPl/FI5OWcdopNWhZt1qJjmmMyVHYN/0+z0732y7YoGYMsx49v1TK0KtXL3bt2kVKSgqqymOPPcbtt99e4D7+JlbL7jZatWrV48uysrKYM2fO8YCRn2rVqnHVVVdx1VVXERYWxpQpUzj99NPz3T5vF9Xs1/ktLy0B78UkItWAj4D7fee3FZE/4m5Djctn1z6q2hm4GLhLRM72t5GqvqGqXVW1a506flOaF8tNvZtyWYdEDh3L5I73FnLoaEbhOxljSoW/dsGYyHBG9mtdaudYs2YNmZmZxMfH069fP95+++3jvYi2bt3Kzp07T9jn7LPPZtw491H1ww8/kJCQQI0aNU7Yrm/fvrz88svHX2ffhvI1a9Ys9uzZA8CxY8dYtWoVTZo0KbDM06ZNY/fu3aSlpTF58uTjtYbNmzczZ84cAMaPH8+ZZ55ZhCtQdAGtQYhIJC44jFPVj32W3wQMAC7QfOY8VdVt3s+dIvIJ0B34KZDl9crGs1e1Y9W2fazbeZD/+2Q5/7muow30MaYM5G0XLK1eTNltEOBqA2PHjiU8PJy+ffuyevVqevXqBbhv9u+99x5169bNtf8TTzzBLbfcQvv27YmNjWXs2LF+zzNq1Cjuuusu2rdvT0ZGBmeffTavvfZarm02bNjAHXfcgaqSlZXFpZdeytVXX11g+c8880xuvPFG1q9fz/XXX0/Xrl1JSkri9NNPZ+zYsdx+++20atWKO+644ySvkH8Bm5Na3CfqWGC3qt7vs7w/8G/gHFX1O+7bmzg9TFUPeM+nAU+p6tcFnbNr165aWhMGrdtxgMtfmcXhY5k8fXkbbuzVtFSOa0xls3r16gJvn5iCjRkzhgULFuSqmYDrxTRgwABWrFhR5GP5+12IyEJV7epv+0DeYuoD3Aic73VVXSIilwAvA9WBad6y17xCJorIFG/fesBMEVkKzAO+LCw4lLZW9arzzFXtAHjqi1Us2bK3LE9vjDFBF7AaRDCUZg0i2+OfruDdOZtoUDOGL+45k1pVq5Tq8Y2p6KwGETpCqQZRIfzx0tPp0KgmW/emcf+EJWRlVZyAaowxBbEAUYioiHBGD+1MrdhIfvwlhZemrw92kYwxpkxYgCiCBjVj+M/gTojAf777hZ9+KV5OdWOMKY8sQBTROafW4d7zW6EK932w2DK+GmMqPAsQxXDvBa04q1UCew6nc+e4RRzLyAp2kYwxRfTJJ58gIqxZs+b4spSUFHr06EGnTp2YMWMGo0ePLvF5vvjiCzp16kSHDh0444wzeP311wE3luKf//wnAI8//jjffvvtSR1/wYIF3HvvvSUuZ1FYgCiG8DDhxcGdSIyLZsmWvfx9SsH5U4wxJ2HZRHihLTxR0/1cNrFUDps90viDDz44vuy7777jtNNOY/HixTRq1KjYASJ7sFu29PR0hg8fzueff87SpUtZvHgx55577gn7PfXUU1x44YUn9T66du3KqFGjTmrf4rIAUUy1q1Zh9A1diAwXxsxO4rOlltTPmFKzbCJ8fi/s2wKo+/n5vSUOEgcPHmTWrFm89dZbxwPEkiVL+MMf/sCUKVPo2LEjjzzyCBs2bKBjx46MHDkS8J8KPHsE85133knnzp3ZsmXL8fMcOHCAjIwM4uPjAYiKiqJ16xPThNx8883H53to2rQpjzzyCN27d6d79+6sX7/++DYjRozgrLPO4tRTT+WLL74AXKqPAQMGlOh6FFWlnjDoZHVsVJM/DziDxz9dyaMfLeP0U6rTql71YBfLmND3RFzx90lPg49vc498j7uvwENMnjyZ/v37c+qpp1K7dm0WLVpE586deeqpp46PUk5KSmLlypXH8yfllwq8cePGrF27lnfeeeeEGkft2rUZOHAgTZo04YILLmDAgAEMGTKEsLCCv4vXqFGDefPm8e6773L//fcfDwZJSUn8+OOPbNiwgfPOO+948CgrVoM4STf2bMLADokcPpbJHeMWWVI/Y0LY+PHjGTx4MACDBw9m/Pjxhe5TUCrwJk2a0LNnT7/7vfnmm3z33Xd0796df/7zn9x6662FnmvIkCHHf2Yn3wMYNGgQYWFhtGrViubNm+dqPykLVoM4SSLCM1e1Y9X2/azfeZBHP17OqMGW1M+YAhXyTZ8X2nq3l/KIawQPFD3nkK/U1FSmT5/OihUrEBEyMzMREZ577rkC98svFXhSUlKuFN/+tGvXjnbt2nHjjTfSrFkzxowZU+D2vp8b+T339zrQrAZRAlWjInjths7EVgnn86XbeHfOpmAXyZjy7YLHITLPXAqRMW75SZo0aRLDhg1j06ZNJCUlsWXLFpo1a3bC5DrVq1fPNblPUVOB+zp48CA//PDD8ddLliwpNJU3wIQJE47/zM4sC/Dhhx+SlZXFhg0b2Lhxo9/2jECyGkQJtaxbnX9c3Z57xi/mr1+uol3DODo3rlX4jsaYE7Uf5H5+9xTsS4a4hi44ZC8/CePHj+fRRx/Ntezqq6/m/fffp0ePHseXxcfH06dPH9q2bcvFF1/M888/7zcVeHh47vkqfKkqzz33HLfffjsxMTFUrVq10NoDwNGjR+nRowdZWVm5bn+1bt2ac845hx07dvDaa68RHR1dzHdfMpasr5Q88dlKxsxOIjEumi/uPYvaltTPGMCS9RWmadOmLFiwgISEhFzLb775ZgYMGMA111xTaueyZH1B8n+XnE6nxjXZtu8I932wmExL6meMKecsQJSSKhFhvHJ9Z2pXrcKMdbsY9d2JE58bY0xeSUlJJ9QewE0UVJq1h5NhAaIUJdaM4cXBHRGBUdPX8cPaghu0jKksKtKt7PLqZH4HAQsQItJIRL4XkdUislJE7vOW1xaRaSKyzvvpt0VXRPqLyFoRWS8ij/rbJhSd1aoO919wKqpw/4QlbLWkfqaSi46OJjU11YJEEKkqqampxW7kDuSc1PWB+qq6SESqAwuBK4CbcfNUP+t98NdS1Ufy7BsO/AJcBCQD84EhqrqqoHMGs5HaV1aWcuvY+fywNoUOjWoy8faeREXk3/PBmIosPT2d5ORkjhw5EuyiVGrR0dE0bNiQyMjIXMsLaqQOWDdXVd0ObPeeHxCR1UAD4HLgXG+zscAPwCN5du8OrFfVjQAi8oG3X4EBIlSEhQkvDOrIgJdmsnTLXv76xWqevqJtsItlTFBERkbSrFmzYBfDnIQyaYMQkaZAJ+BnoJ4XPLKDSF0/uzQAfIdTJnvL/B17uIgsEJEFKSmhM5FPrapVGD20M1XCw/jf3E18umRrsItkjDHFEvAAISLVgI+A+1V1f1F387PM770wVX1DVbuqatc6deqcbDEDokOjmvz5sjMAePSj5fyy40AhexhjTOgIaIAQkUhccBinqh97i3d47RPZ7RT+uvokA418XjcEymVe7Rt6NOaKjomkpWcy4r2FHLSkfsaYciKQvZgEeAtYrar/9ln1GXCT9/wm4FM/u88HWolIMxGpAgz29it3RIS/X9WOU+tVY2PKIR75aJn15jDGlAuBrEH0AW4EzheRJd7jEuBZ4CIRWYfrpfQsgIgkisgUAFXNAO4GvgFWAxNVdWUAyxpQsVUiePWGLlStEs6Xy7YzZnZSsItkjDGFslxMZejLZdu56/1FRIQJE27vRZcmltTPGBNclospRFzavj639GlKRpZy9/uLSD14NNhFMsaYfFmAKGOPXXw6nRvXZPu+I9z3wRJL6meMCVkWIMpYlYgwXhnqkvrNXL+LF7/9JdhFMsYYvyxABEH9uBhGDe7kJfVbz/eW1M8YE4IsQATJma0SeOiiUwF4YMIStuw+HOQSGWNMbhYggujOc1ty/ml12Xs4nbveX8TRjMxgF8kYY46zABFEYWHCvwd1oGGtGJYl7+Opz8tFLkJjTCVhASLIasbmJPUb9/NmPlmcHOwiGWMMYAEiJLRvWJO/DHRJ/R77eDlrf7OkfsaY4LMAESKu796Yqzo14Eh6Fne8t5ADR9KDXSRjTCVnASJEiAh/u7IdretVZ+MuS+pnjAk+CxAhJKZKOK/e0JlqURFMWf4bb89KCnaRjDGVmAWIENO8TjWeu6Y9AM9MWc2CpN1BLpExprKyABGCLmlXn9+d2YyMLOWu9xexy5L6GWOCwAJEiHr04tPo2qQWO/Yf5b4PFltSP2NMmQvkjHJvi8hOEVnhs2yCz+RBSSKyJJ99k0Rkubdd6E7wEECR4WG8fH1nEqpVYdb6VF6YZkn9jDFlK5A1iDFAf98FqnqdqnZU1Y64uao/9rNftvO8bf1OZFEZnBIXzajBnQgTePn79UxfsyPYRTLGVCIBCxCq+hPgt4XVm696EDA+UOevKHq3TOChvq0BuP8DS+pnjCk7wWqDOAvYoarr8lmvwFQRWSgiw8uwXCHpjnNacMFpddl/JIM7xi3kSLol9TPGBF6wAsQQCq499FHVzsDFwF0icnZ+G4rIcBFZICILUlJSSrucIcEl9etIo9oxrNi6nyctqZ8xpgyUeYAQkQjgKmBCftuo6jbv507gE6B7Adu+oapdVbVrnTp1Sru4ISMuNpJXh3ahSkQY4+dt5qOFltTPGBNYwahBXAisUVW/n3AiUlVEqmc/B/oCK/xtW9m0bRDHkwPbAPDHyctZ89v+IJfIGFORBbKb63hgDtBaRJJF5HfeqsHkub0kIokiMsV7WQ+YKSJLgXnAl6r6daDKWd4M7taIqzs39JL6LWK/JfUzxgSIVKSEcF27dtUFCyr+sIm0Y5lcOXoWa347QP82p/DqDZ1xHcOMMaZ4RGRhfsMJbCR1OeSS+nWhelQEX6/8jbdm/hrsIhljKiALEOVUs4SqPH+tl9TvqzXMt6R+xphSZgGiHOvftj63ndWMzCzlrnGLSDlgSf2MMaXHAkQ594f+p9GtaS12HjjKveMXk5GZFewiGWMqCAsQ5VxOUr8o5mxM5d+W1M8YU0osQFQA9WpE89IQl9Rv9A8bmLbKkvoZY0rOAkQF0atFPCP7nQbAgxOXsDnVkvoZY0rGAkQFMuKc5lx4ej0OWFI/Y0wpsABRgYgI/xrUgca1Y1m5bT9PfLYy2EUyxpRjFiAqmLiYSEYP7UyViDA+mL+FDxdsCXaRjDHllAWICqhtgzievtwl9fvT5BWs2mZJ/YwxxWcBooK6rltjru3SkKMZWdw5bqEl9TPGFJsFiArs6Svacnr9GiSlHubhiUupSIkZjTGBV6QA4c3REOY9P1VEBopIZGCLZkoqOjKcV4d2pnpUBFNX7eC/MzYGu0jGmHKkqDWIn4BoEWkAfAfcAowJVKFM6WmaUJV/DuoAwD++XsvPG1ODXCJjTHlR1AAhqnoYN1XoS6p6JXBG4IplSlO/Nqdw+9nNycxS7h6/mJ0HjgS7SMaYcqDIAUJEegFDgS+9ZRGF7PC2iOwUkRU+y54Qka0issR7XJLPvv1FZK2IrBeRR4tYRlOAkf1a071ZbVIOHOWe9y2pnzGmcEUNEPcBjwGfqOpKEWkOfF/IPmOA/n6Wv6CqHb3HlLwrRSQceAW4GFdLGSIiVlspoYjwMF4e0ok61aP4+dfdPD91bbCLZIwJcUUNEPVUdaCq/gNAVTcCMwraQVV/Ak5mFpvuwHpV3aiqx4APgMtP4jgmj7o1onl5SCfCw4TXf9zI1JW/BbtIxpgQVtQA8VgRlxXF3SKyzLsFVcvP+gaA7/DfZG+ZXyIyXEQWiMiClJSUkyxS5dGjeTx/6NcagIc+XMqm1ENBLpExJlQVGCBE5GIReQloICKjfB5jgIyTON+rQAugI7Ad+Je/0/pZlm8HflV9Q1W7qmrXOnXqnESRKp/hZzen7xkuqd+I9xZZUj9jjF+F1SC2AQuAI8BCn8dnQL/inkxVd6hqpqpmAf/F3U7KKxlo5PO6oVcOU0pEhOev7UCT+FhWb9/P45+uKHwnY0ylU2CAUNWlqjoWaKmqY30eH6vqnuKeTETq+7y8EvD3yTQfaCUizUSkCjAYF5BMKYqLieTVoV2Iighj4oJkJs63pH7GmNyK2gbRXUSmicgvIrJRRH4VkQKH5YrIeGAO0FpEkkXkd8BzIrJcRJYB5wEPeNsmisgUAFXNAO4GvgFWAxNV1fJWB8AZiTV4+oq2APz50xWs3LYvyCUyxoQSKUp+HhFZg/swXwgcv2GtqiE1LLdr1666YMGCYBej3Hlk0jImLNhC49qxfH7PmcTFWBYVYyoLEVmoql39rStqDWKfqn6lqjtVNTX7UYplNEH05OVtOKN+DTbvPszDH1pSP2OMU9QA8b2IPC8ivUSkc/YjoCUzZSY6MpzXbuhC9egIpq3awes/WVI/Y0wh6TJ89PB++lZDFDi/dItjgqVxfCz/HtSR295dwHNfr6Fjo5r0bB4f7GIZY4KoSDUIVT3Pz8OCQwVz0Rn1GHFOC7IU7n5/MTv3W1I/Yyqzos4HUU9E3hKRr7zXZ3i9kkwF83DfU+nZvDa7Dh7l7vcXk25J/YyptIraBjEG1+000Xv9C3B/AMpjgiwiPIyXhnSmbvUo5iXt5vlvLKmfMZVVUQNEgqpOBLLg+FgFy89QQdWpHsXL13cmPEx446eNfL3CkvoZUxkVNUAcEpF4vJxIItITsFFVFVj3ZrV5tP9pAIz8cCm/7rKkfsZUNkUNEA/i0l20EJFZwLvAPQErlQkJvz+rGf3bnMKBoxnc8d5C0o5ZpdGYyqSovZgWAecAvYHbgTaquiyQBTPBJyI8d217msbHsua3A/z50xU2iM6YSqSovZjCgUuAC4C+wD0i8mAgC2ZCQ43oSF69oQvRkWFMWpjMBEvqZ0ylUdRcTFNwKb+X4zVUA6jqk4ErWvFZLqbAmbQwmYc/XEq4QO1qUew6cJTEmjGM7NeaKzrlO5+TMSbEFZSLqagjqRuqavtSLJMpZ67p0pCPFm5hzsbdpBw4CsDWvWk89vFyAAsSxlRARW2k/kpE+ga0JCbkbUo9fMKytPRM/vH1miCUxhgTaEWtQcwFPhGRMCAdNy2oqmqNgJXMhJzt+/yn3ti+7wiDXptD75bx9G6RQMdGNakSUdTvHsaYUFXUAPEvoBewXK0bS6WVWDOGrXvT/K6bl7SbeUm7+c+364iJDKdbs9r0aeECxhmJNQgP8zfVuDEmlBU1QKwDVhQnOIjI28AAYKeqtvWWPQ9cBhwDNgC3qOpeP/smAQdwo7Uz8mtAMWVrZL/WPPbxctLSc8ZDxESG8+cBpxNfLYo5G1KZtX4X63Ye5KdfUvjplxTATW/as3lt+rRMoHeLeFrUqYaIBQxjQl1RezGNAZoDXwFHs5er6r8L2Ods4CDwrk+A6AtMV9UMEfmHd4xH/OybBHRV1V3FeTPWiynwJi/eyvPfrGXb3rR8ezHtPHCEORtSmb0+lVkbdpG8J3eto16NKHq3SKBXi3j6tEygQc2YsnwLxhgfBfViKmqA+Iu/5YV1cxWRpsAX2QEiz7orgWtUdaifdUlYgKgwtuw+zKz1u5i9IZXZG1LZdfBorvVN4mPp3cLVLnq1iCehWlSQSmpM5VPiAOFzoKqqWuSkPIUEiM+BCar6np91vwJ7cLmfXlfVNwo4x3BgOEDjxo27bNq0qajFM0GgqqzbefB4wJi7MZUDRzJybXPaKdWPB4wezWtTPdrmyDYmUEqjBtELeAuopqqNRaQDcLuq3lnIfk3xEyBE5I+42emu8teuISKJqrpNROoC04B7VPWnwsppNYjyJyMzi5Xb9jNrwy7mbEhlftJujqTnzEERHia0axBHH6+HVJcmtYiODA9iiY2pWEojQPwMXAN8pqqdvGUr/NUM8uzXlDwBQkRuAkYAF6jqiR3rTzzGE8BBVf1nYdtagCj/jmZksnjzXmav38WsDaks3bKXjKycv9EqEWF0aVyLPi3j6dUigQ4N44gIty61xpys0hhJjapuydPzpNipPUWkP/AIcE5+wUFEqgJhqnrAe94XeKq45zLlU1REOD2bx9OzeTwPAgePZjA/aTezvVtSq7bvZ87GVOZsTAV+oVpUBN2b1aa316X2tFOqE2Zdao0pFUUNEFtEpDegIlIFuBdYXdAOIjIeOBdIEJFk4C/AY0AUMM0LNnNVdYSIJAJvquolQD3coLzs8r2vql8X+52ZCqFaVATnta7Lea3rArDn0DHmbnS9o2avT2XjrkNMX7OT6Wt2AlC7ahV6NY8/PmivaXysdak15iQV9RZTAvAicCFuFPVU4D5VTQ1s8YrHbjFVPtv3pTF7farXQ2rXCaO9E+Oi6dUi4Xgbxilx0UEqqTGhqdR6MYU6CxCVm6qSlOq61M7xAsaew+m5tmlepyq9W8TTp0UCPZvHU6tqlSCV1pjQUBqN1GNxNYa93utawL9U9dbSLGhJWYAwvrKylDW/HWD2Btd+8fPGVA75zIonAmfUr+HaL1om0L1pbapGFblZzpgKoTQCxOLs3ksFLQs2CxCmIOmZWSxL3ne8wXvhpj0cy8zpUhsRJnRsVPN4wOjUuCZREdal1lRspREglgLnquoe73Vt4EdVbVeqJS0hCxCmOI6kZ7Jw057jg/aWJe/Fp0ct0ZFhdGta26UEaZFA2wZxlnTQVDil0c31X8BsEZnkvb4W+FtpFM6YYImODKdPywT6tEwAYP+RdOZt3H180N6a3w4wY90uZqzbBaylenQEPZvHuzaMlgm0qmtJB03FVuRGahFpA5yH68X0naquCmTBTobVIExpSjlwlLkbU4+3YeSdMCmhWpQ3/sIFjEa1Y4NUUmNOXmnmYqoLHO8nqKqbS1680mMBwgRS8p7DrjutN8o7e+rVbA1rxdCnRQK9W7qkg3WrRzP/s9dptOh56moKO6UOWzqPpNvA24P0DkyFs2wifPcU7EuGuIZwwePQflCxDlEabRADcbeZEoGdQBNgtaq2KVZJAswChCkrqsqGlIPM9ubAmLMhlf15kg7eGPszj2W+SqwcO74sTauwostfLUiYkls2ET6/F9J90ulHxsBlo4oVJEqrkfp84FtV7SQi5wFDVHV4kUtRBixAmGDJzFJWeUkHZ29IZf6vu5kmd9Ew7MSM9bu0Bq92/IT6CbVpWCuWRrVjaFQ7lhqWtdYURcYx2LoA3r8Oju4/cX1cI3hgRZEPVxoBYoGqdvUCRSdVzRKRearavcilKAMWIEyoOJaRRcTTtciv09MxDWextmJWZltmZ53BUm1J1dgYGmUHjFqxNKrtPWrF0KBWjHW5rayyMuG3ZfDrT7DxR9g8B9ILynMq8MTeIh++NHox7RWRasBPwDgR2QlkFLKPMZVWlQNbyJQwIOuEdceIIFIy6SFr6BG2hgeBQxrF/PTTmPVbG2Zva8NX2gQlJ0utCJxSI5pGtWJp6AWQxtkBpHYM9apHW5LCikIVdv3iBYQfIGkmHNmbe5s6p8O+LXDs4In7xzUstaIUtQZRFTiC68E0FIgDxlkuJmP82L8N3u4PezeRqUK45PyPHW+DuGgQJM2CX390HwQpa3IdIi0ijvWxHZgv7fn2SGvm7q9NluYfAKqEh9GwVgwNvRpHo9peAPFqJHExkdYlN5Tt3ZxTQ/j1Jzj4W+71NZtA83Og2TnQ9CyoXi902iDKCwsQJugO7oR3LoHUdZDYmUV1riBx6UvU1V3slIT8ezEd+A1+nQG//gAbf4J9uTsIavX6HE7szbba3Vkd3Yk1aXFs2ZPGlt2H2bL7MKmHjp14TB/VoyKO1zayb1819l43rBVrkzCVtYMpkOQTEPb8mnt91bpeQDjbPWo19X+cYPZiEpEDuGk/s796ZG8sgKpqjWKVJMAsQJigOrwbxlwKO1dBvXZw02cQW7v4x1GFPUnugyO7hnEoJfc2tZt7Hx7uQ+RQRE2SvYCxefdhtuw5zJbdaSTvca8PHyt4+pY61aO8GkeM1+6Rc/uqflyMjSAvqSP7YNPsnICwc2Xu9VFx0OysnN9pndbuvmIZsBqEMYGWthfeHQjbl0JCa7j5S6hWp3SOrQo7V+cEjKSZJ/Zeqdc258OlSW+IruGzu7L70LHjNY7Nuw+T7AWQLXsOs3VPWq5Z+/KKCBMSa8bkqnHk3MKKoXbVKnb7Kq/0NNjyc05A2LYI1Kc9KiIGmvTK+Z3V7wBhwanFlaQGEY2bHrQlsAx4W1VDtnHaAoQJiqMH4H9XQfI8qNUMbvkKatQP3PkyM1wg+vVH99g8FzJ85sGQcGjQOefDp1EPiMx/HoyMzCx+23/keMDIvm2VHVB25hkQmFdslfBcNY68t7Biq1SCDLmZ6bBtsRcQfoQt8yDT57qFRUDDbjm/k4ZdISIqeOX1UZIAMQFIB2YAFwObVPW+Ip70bWAAsDN7Tmovyd8EoCmQBAzKTgCYZ9/+uAmKwnEzzT1blHNagDBl7thheH8QJM1w/c9vmQI1G5dtGTKOug+k7BpG8gJQn1tK4VHQuIf34XQuJHaC8KJ/aB9Jz8xV49icmnMLa8vuwxw4WvB3xviqVWjoU+PIvoXVuHYs9WtGE+kzp/jkxVt5/pu1bNubRmLNGEb2a80VnRoU84KUgawsd5sou4awaVaeHkUCp7TLaVhu3AuiqgWtuAUpSYBYnp2xVUQigHmq2rmIJz0bOAi86xMgngN2q+qzIvIoUEtVH8mzXzjwC3ARkAzMxw3KKzT3kwUIU6YyjsL4wbBhOlQ7BW79yrUNBNvRA7BpTk4N47fluddXqQ5N++R8m617BoSF+T9WIVSVfWnpuWofm73aR/LuwyTvScuVUj2vMIH6cTE0qh2DqrJw095ct7tiIsN55qp2wQ8SqrB7o+t2+utP7gvB4TydOBNOzWlUbnrWybU/BUFJAsQi34CQ93URTtwU+MInQKzFpQ3fLiL1gR9UtXWefXoBT6hqP+/1YwCq+kxh57MAYcpMZjpMHAZrp0Bsgqs51Gld+H7BcCjVfaBlN3inrs+9PjYhdwNp7eal1kCalaXsOHDkeG1ji9donuwFlN/2H6GwZtAGNWOY9ej5pVKeYtm/LaeG8OuPsH9r7vU1GubuaVQjsezLWApKMlCug4hkt4YJEOO9PtleTPVUdTtu5+1e8r+8GgBbfF4nAz3yO6CIDAeGAzRuXMZVe1M5ZWXCx7e54BBdE4ZNDt3gAFA1Htpc4R4A+7bmfOht/BEObIOVn7gHuFtl2R96zc4pUXtKWJhQP871hOre7MRv1EczMtm6J40te9K46e15fo+xbW+a3+Wl7vBu77p41+aEQBqf+7qUYiANVQUGCFUNRrO6vyue73cMVX0DeANcDSJQhTIGcPeeP73LfZhG1YAbP3H3msuTuAbQcYh7qELqhpzbUb/OcCN0l4xzDwjorZOoiHCa16lG8zrVaFAzhq1+gkG16AhUtfR7Sh096LqeHr8Vt4JcHzWleCuuvCrr7gU7RKS+zy2mnX62SQYa+bxuCGwrk9IZUxBV+PJBWDoeImNh6Ieut1B5JgIJLd2j2+9cANyxIudb9KbZLu3Drl9g/pvkbnw9Fxr3LLXG15H9WvPYx8tJS889ZuPAkQz+/OkKnhzYtmTjMfI25m9dCFk+DewlbMyviAI6DsJPG8TzQKpPI3VtVf1Dnn0icI3UFwBbcY3U16tqnpElJ7I2CBMwqvDN/8Hc0RARDddPdB+SFV1mOmxdlPOhuuVnyPQZtV3K3Tfz9mLq16Ye7/28mWMZWVzc9hReuK5j0Ud9Z2XCtiXF6A7c3aWqqGSCMlBORMYD5wIJwA7gL8BkYCLQGNgMXKuqu0UkEded9RJv30uA/+C6ub6tqkWa3tQChAmY756CGf+CsEgYMh5aXRTsEgVHepr7oM0OGNsWB3wA2M8bU/n9uws4cCSDns1r899hXanuLzX6CQMKZ8HRfbm3KWBAYWVlI6mNKYmfnofpf3XfOAeNhdMvC3aJQseRfV7SQe9DeWee3ujRca7dooQpJFZv38+wt+eRcuAoZ9SvwZhbu1G3ejTs/rXoKUmanlV6o9srEAsQxpys2S/D1D8CAle/Ce2uCXaJQtvBnbl7Au1Jyr2+Wr3cPYFqNSnyobfsPsx9//2KhvsW0i9mDf2q/kLE/i25N6p2Ss7gtGZnlf2gxXLIAoQxJ2P+m/DlQ+755a9ApxuCW57yaM+m3AHj4I7c633TWDc72w1E881OetZDULVOvmnRM6LiiGienbTwHEhoVeG7npY2CxDGFNficfDpne75Jf+E7rcFtzwVQfZEONn5ipJmuFtUuQgF9GqHyFgyGvViQmoz3t/ZjC1VWvDasG70bpEQyJJXaBYgjCmO5ZPcQDjNgr5/hd73BLtEFVP2VJrZo5U3TMdvcAiPcjWJZmdDgy4QUYWjGZk8NHEpXyzbTpXwMP4zuCOXtAtggsQKzAKEMUW1+guXQkMz4bw/wTkjg12iyuOJmvivPfifYzkrS3ny85WMnbMJEXj68rbc0LPobRrGKShAVK5hgcYUZN238OHNLjic+SCc/XCwS1S55DeXcj7Lw8KEJwa24eG+p6IKf5q8ghem/UJF+tIbbBYgjAF3i2PCUMhKhx53uKkbrbGzbF3w+IkD1SJj3PJ8iAh3n9+KZ65qR5jAi9+t48+friCzgAmQTNFZgDBm81x4f7AbZdvlFuj/jAWHYGg/CC4b5ZIFIu7nZaOKNMfykO6NGT20C1Uiwnhv7mbuGb+IoxkFT7NqCmdtEKZy27oI3r3cTeHZYQhcPrrSJWSrSOZuTOW2sQs4cDSDXs3jeWNYF/+jrs1x1gZhjD+/rYD/XemCQ5srYeDLFhzKuZ7N45lwey/qVI9izsZUBr8xl5RCpkw1+bP/hmUT4YW2rgfFC23da1Pxpfziag5H9kLrS+Cq/1b6zJ0VxRmJNfj4jt40jY9l5bb9XPPabDalHgp2scqlyh0glk2Ez+91+e9R9/Pzey1IVHS7N8K7A+HwLmhxPlzzDoTbbYiKpFHtWCbd0Zt2DeLYlHqYq1+dw4qteQflmcJU7gDx3VMuO6Wv9DS33FRMe7fA2IFwYDs0OROuGweR0cEulQmAhGpRjB/ekz4t49l18CiD35jL7A27gl2scqVyB4h9ycVbbsq3/dth7GWuptiwG1z/AVSJDXapTABVi4rg7Zu7MaB9fQ4ezeDmt+czZfn2YBer3KjcASK/gTmx8WVbDhN4h3a5Noc9v7o5CoZOgqjqwS6VKQNREeGMGtyJm3o14VhmFne9v4j35m4KdrHKhTIPECLSWkSW+Dz2i8j9ebY5V0T2+WyT/0iZkvA3MAfcvemPboNDqQE5rSljh3fDu1fArrVuXuEbJ0NMzSAXypSl7FHXD12UM+r6P9/aqOvClHmAUNW1qtpRVTsCXYDDwCd+Np2RvZ2qBqZR4ISBOQ2h7TVuVqzlE+GV7rDiI5eF0pRPR/bDe1fDjuUQ39IFh9jawS6VCQIR4Z4LckZd/+dbG3VdmGD367sA2KCqwavvtR904kjN1A3w+X0uHfGkW112z0v/BTUSg1NGc3KOHYL3B8G2RW7egWGfQfV6wS6VCbIh3RtTK7YK936wmPfmbmb3oWO8cF1HoiJKNjVqRRTsNojBwPh81vUSkaUi8pWItMnvACIyXEQWiMiClJSU/DYrnvgW7sNkwH8gqgasnQKv9ICFY6w2UV6kp8H4IbB5DtRoADd9BnENgl0qEyL6tz2Fd2/tTvWoCKYs/42b357PgSPpwS5WyAlaqg0RqQJsA9qo6o4862oAWap6UEQuAV5U1VaFHTMgqTb2bYUvH4Rfvnavm54FA0e5uW5NaMo45hLvrZsKVevCLV9BQstgl8qEoFXb9nPTO26u6zaJNRhzS3fqVI8KdrHKVKim2rgYWJQ3OACo6n5VPeg9nwJEikhwpoyKawBDPoCr33K9m5JmwOjebq7iLEsGFnIyM+CjW11wiKkNwz614GDyZaOuCxbMADGEfG4vicgpIi6dpoh0x5UzeF2KRNxk9XfNg3bXQkaam8j+rYtgx6qgFcvkkZUJk0fA6s8hKg6GTYZ6ZwS7VCbE2ajr/AUlQIhILHAR8LHPshEiMsJ7eQ2wQkSWAqOAwRoK/dGqJsDVb8KQCVA9EbYuhNfPhh+edbc1TPBkZbmOBcs/hCrV4IaP3HgHY4rARl37Z+m+T9aRfTDtL7DwHfe67hkuG2jDLmVzfpNDFb76A8x7w3VRvuEjaNon2KUy5dDRjEwenLiUL725rl8c3JGLK/hc16HaBlG+RcfBZf+Bm76AWs1g5yp460L45o9w7HCwS1d5qMK0x11wCK8CQ9634GBOWlREOC/5jLq+s5KPurYAUVLNzoI7ZkPve9zrOS/Dq73cFJYm8H54FmaPgrAIGPSuy85qTAnYqOscFiBKQ5VY6PtX+P23ULcN7ElySeE+v8/dijKBMfMF+PFZkDDXNtT64mCXyFQQ2aOu/35lzqjrxz9dWelGXVuAKE0NusDwH+C8P0JYpBtY90oPWPtVsEtW8cx9Db59AhC44jU3I5wxpez6Ho0ZPbQzVSLC+N/cTZVurmsLEKUtogqc8wcYMQMadHXzDowfDJN+5zKKmpJbOAa+fsQ9H/ACdLguqMUxFVv/tvUr7ahrCxCBUvd0+N1U6PcMRMbCiknwcjdY9qGl6yiJpRPg8/vd8/7/gK63BLU4pnKorHNdW4AIpLBw6HWna8Rudg6k7YaPf+9qFPu2Brt05c/KT9xAOBQufAJ6jihsD2NKzRmJNfhoRO5R15tTK3aPRQsQZaF2M5fyYeBLboTvL1+7tokFb7sBXqZwa7+Gj34PmgXnPAJnPhDsEplKqHG8G3XdtkENNqUe5qpXZ7NyW8XtiGIBoqyIQOdhcNfP0PpSOHYAvnjA9XZK3RDs0oW2DdNh4o2QlQG974VzHwt2iUwlllAtivG35Yy6vu71uczZUDEnF7MAUdZq1IfB4+DaMVC1DmyaCa/2hlmjXKI5k1vSLBh/PWQeg263wUVPuWBrTBBVj47k7Zu7cak31/VNb8/jqwo417UFiGAQcd0y75oH7QdDxhGY9mc3Evu3FcEuXehIXuAm/MlIg043wsXPWXAwISN7ruthFXjUtQWIYIqtDVe9DkMnQY2GsG0xvHEOfP93yKj4PSQKtH0pvHcVHDvoMuhe9iKE2Z+rCS3hYcKTA9vwYAUddW3/caGg1UVw5xzo9nt3n/3Hf7gssVvmB7tkwbFzNbx7hRuFfvplbiBcmE0HaUKTiHBvBR11bQEiVETXcPNe3zwFareAlDVuvomv/8/NrVxZ7FoPYwe6LsGt+sLVb0N4sKdON6ZwFXHUtQWIUNO0D9wxy3XjlDCY+wqM7gUbfwh2yQJvTxK8OxAO7XTjRgb9z41MN6acyDvq+pZ3yveoawsQoSgyxg0Eu+07qNcO9m6Cdy+HT++GtL3BLl1g7Nvqag77t0LjXjBkPERGB7tUxhSb76jr2RvK96jrYM0olyQiy0VkiYicMMOPOKNEZL2ILBORzsEoZ9AldoLh38P5f3ZzHSz+nxtgt+bLYJesdB3c6WoOezdBYme4fiJUqRrsUhlz0irKqOtg1iDOU9WO+cxkdDHQynsMB14t05KFkvBIOPthGDETGnaHg7/BB9fDhze7D9by7lCqqx2lrne1pRs+cu0xxpRzjeNj+XBE+R51Haq3mC4H3lVnLlBTRCr2vH+FqdMabv3ajQWIrOryEr3S3SWvK69d6tL2wntXutn4ElrDjZ+4rr/GVBB1qrtR171beHNdl7NR18EKEApMFZGFIjLcz/oGwBaf18neshOIyHARWSAiC1JSUgJQ1BASFg49bnddYpufB2l74JPhMO5a2Lul8P1DydEDMO4aN96hlperqlqdYJfKmFJXPTqSd27pxqXt6nOgnI26DlaA6KOqnXG3ku4SkbPzrPc3XNbv12RVfUNVu6pq1zp1KskHTK0m7tv25aPd3Njrp8HonjD/zfKR/O/YYXh/MCTPh7hGcNPnLgWJMRVUVEQ4o4bkHnU97ufQH3UdlAChqtu8nzuBT4DueTZJBhr5vG4IbCub0pUTItBpKNw13w0mO3YQvnwIxlzqxhKEqoyjMGGoy0FV7RS46TOo2ajw/Ywp5/KOuv7jJyt48dt1IT3quswDhIhUFZHq2c+BvkDeBESfAcO83kw9gX2qWj7qZGWtej247j0Y9C5UrQubZ7vkfzNfCL3kf5nprnF9w3SITXDBoXbzYJfKmDKTd9T1C9/+EtKjroNRg6gHzBSRpcA84EtV/VpERohI9gwwU4CNwHrgv8CdQShn+XLG5S6VeIfrIfOom6/5zfPht+XBLpmTmeHmc1g7BaJrujaHOq2DXSpjgiLvqOt7xy8OyVHXEsrVm+Lq2rWrLlhwwrCKymf9t/D5A7BvM4RFQJ/74eyRwRt4lpUFn94JS8dDVA0XHBpUzqEtxviasyGV4e8u4MDRDHq3iOf1G7tQPTqyTMsgIgvzGW4Qst1cTUm0vND1dOp+O2Rlwox/wutnweafy74sqvDlgy44RFaFoR9acDDG06tFPB/c3pOEam7U9ZD/htaoawsQFVVUNbjkOTd2Ir4V7PoF3u4HXz0CRw+WTRlU4evHYOE7EBHt0mc07lk25zamnGiTGMfHd/SmSXwsK7aG1qhrCxAVXeOebhT2WQ+55H8/vwav9nINxYE2/Wn4+VUIi4TrxkHzcwJ/TmPKocbxsUwa0Zs2iaE16toCRGUQGQ0XPA7Df4BT2sPezfC/K2HyXW6wXSD8+DzM+BdIuJtetdWFgTmPMRVEnepRfDA8tEZdW4CoTOq3h9umu0yx4VGw5D2X/G/VZ6V7ntkvwfd/BQSuegNOH1C6xzemgvI36vrrFcHr4W8BorIJj3RzTdwxy6XVPrgDJt4IE26EAztKfvx5/4Wpf3LPL38F2l1T8mMaU4mcMOp6XPBGXVuAqKwSWrnZ6y75J1SpBqs/c8n/lrx/8sn/Fr8HUx52zy/9lxvpbYwpNt9R11lBHHVtAaIyCwuD7re5LrEtL4Qje2HyHfDe1a6dojiWT3ITGgH0/ZubX9sYc9KyR13/7cq2x0dd/+Wzsh11bQHCQM3GMHQSXPk6xNSCDd/BKz3h5zeKlvxv9efw8XBA4bw/Qe+7A15kYyqLoT2auFHX4WG8O6dsR11bgDCOCHQYDHfNgzZXQvoh+GokvHMx7FqX/37rpsGHt4Bmuq6054wsuzIbU0n0b1ufsd5c118u315mc11bgDC5VavruqVeNw6q1YMtc+HVPq7LamaeP8iNP8KEGyArHXre6aZGNcYERDBGXVsuJpO/tD0w9c9uLmyAU9rBGVfAwjGwL9nbSKHLLTDgBVcLMcYE1ObUw9z49s9sSj1MfNVIIsLD2Ln/KIk1YxjZrzVXdPI7t1q+LBeTOTkxteDyl+HGya6d4rflbnT0vi24+ZvUDYRr3MuCgzFlJHvUdYOa0aQeSmfH/qMosHVvGo99vJzJi7eW2rksQJjCtTgP7pzrusPmpZkuaBhjykyd6lH468yUlp7J89+sLbXzWIAwRVOlKhw75H/d8dtNxpiy8tu+I36Xb9ubVmrnsABhii6uYfGWG2MCJrFmTLGWn4xgTDnaSES+F5HVIrJSRO7zs825IrJPRJZ4j8fLupzGjwseh8g8f3yRMW65MaZMjezXmpjI8FzLYiLDGdmv9GZqjCi1IxVdBvCQqi7y5qZeKCLTVHVVnu1mqKpleQsl7Qe5n9895W4rxTV0wSF7uTGmzGT3Vnr+m7Vs25t20r2YClLmAUJVtwPbvecHRGQ10ADIGyBMKGo/yAKCMSHiik4NSjUg5BXUNggRaQp0AvzNhdlLRJaKyFci0qaAYwwXkQUisiAlJSVQRTXGmEonaAFCRKoBHwH3q+r+PKsXAU1UtQPwEjA5v+Oo6huq2lVVu9apUydg5TXGmMomKAFCRCJxwWGcqn6cd72q7lfVg97zKUCkiCSUcTGNMaZSC0YvJgHeAlar6r/z2eYUbztEpDuunMGde88YYyqZYPRi6gPcCCwXkSXesv8DGgOo6mvANcAdIpIBpAGDtSIljTLGmHKgQiXrE5EU4GTn5ksAdpVicSo6u17FY9ereOx6FU9JrlcTVfXbgFuhAkRJiMiC/DIamhPZ9Soeu17FY9ereAJ1vSzVhjHGGL8sQBhjjPHLAkSON4JdgHLGrlfx2PUqHrtexROQ62VtEMYYY/yyGoQxxhi/LEAYY4zxK+QDhIgczPP6ZhF5OYjleUJEHg7W+UtT3mtbyLZ1RORnEVksImeJyLXenB7fB7KMoUxErvSZsyT7kSUiFxewz+yyLGOwiIiKyP98XkeISIqIfBGAc0WJyAQRWe/9jTYt7XOUpey/ERFpKiJp3t/VUhGZLSKtvXXZc+YsFpG1IvKTiAzw1tUUkVSfbBS9vN9HQ+91nIjsFpFCP/9DPkAEg4gEY4R5qLsAWKOqnVR1BvA74E5VPS/I5QoaVf1EVTtmP4DRwAzgmwL26V1W5QuyQ0BbEcmeYeoiYGuAzvU7YI+qtgReAP4RoPOUiTx/Ixu8v68OwFhc1olsM7z/x9bAvcDLInKBqu4FfgNO97brDSz2fgL0BH5W1azCylKuA4SIjBGRa3xeH/R+nisiP4jIJBFZIyLjfKLpJd6ymSIyKvsbjVczeENEpgLvisgMEenoc+xZItLee9lBRKaLyDoRuc1bLyLyvIisEJHlInKdt3xU9ox4ItLPi/Qhe91FpIWIfC0iC71rcJp3HZ4DLvG+zfwFOBN4zXvP4d7P+SKyTERu946V7++hohGRU4HHcWlkYkXkOxFZ5P0tXO6zXaF/oxXIV8Cl3vMhwPjsFSLS3ftGvDjPN+ObReRj729wnYg857PP70TkF++6/Vdy7iRcjvvwBJgEXFCer6XkX7OvAezxt0JVlwBPAXd7i2aRExB64wKn7+ui1WRVNaQfQCawxOexGXjZWzcGuMZn24Pez3OBfUBDXBCcg/tAiwa2AM287cYDX3jPnwAWAjHe65uA/3jPTwUW+Gy3FIjBDW/fAiQCVwPTgHCgnlfO+kAssBI4D1gLtAj2Nc17vfIs+w5o5T3vAUz3nt+cfd291z8AXb3nw4E/ec+jgAVAs/x+D8F+3wG4jpHeex7svY4AanjPE4D15PQYLPBvNNjvpTT/toD2uA/saO9/91yf/7caQIT3/ELgI5+/s41AnLffJqCR9z+WBNT2rvcMcj4HVgANfc69AUgI9jUoybXzfjbF5aJb4r2n7UBjn7+fL/Ls1xGXBDX7Or7tPV/sXcuZ3utpwPlFKUt5uJWSpq76DrhvGEBRhpTPU9Vkb58luIt9ENioqr9624zHfbhl+0xV07znHwJ/FpGRwK24YJTtU2+7NHH34LvjAtB4Vc0EdojIj0A3Vf3Mq2X8BDygqhuK+sbLmrg5OnoDH/p8AYsqwq59gfY+tbk4oBVwDP+/h5mlV+qQ8DSwUlU/8F4L8HcRORvIws2YWA9X7fdVoa+Nqi4T1x4wBJiSZ3UcMFZEWgGK+9DP9p2q7gMQkVVAE1yg/VFVd3vLP8R9cQN3vU84fWm9jyDbkP35592VeAPon8+2vtdhFvCoiDQDklT1iHeXoxrQBZhXlJOXhwBRkAy822RelbKKz7qjPs8zce+1sGrnoewnqnpYRKbhqq+DyB2U8v7xaSHHbodLV55YyPmDLQzY6xuQi0iAe1Q11713ETkX/7+HCsN7j1cDnX0WDwXqAF1UNV1EknDf4PKq0NfG8xnwT9w33nif5U8D36vqlV4Q+cFnXXH/d5NxtYxkr/0wDthd0oKHoM+AdwpY3wlYDaCq60SkFnAZrnYK7g7JLcCv6s23U5iQvRdeREm4aAjugzwy/00BWAM0l5xeDtcVsv2bwChgfvY3l+xziUi0iMTj/vDn42oI13n34+sAZwPzRKQJ8BDul3exiPQoyhsLBnUz+/0qItfC8XaVDkXY9RtcevZIb79TRaRqAIsaErx/wHeAYap6wGdVHLDTCw7n4b4BV1ZvA0+p6vI8y+PIabS+uQjHmQecIyK1vCBwtc+6z3C3hMFNFTBdvXspFcyZuFtNJ/DaR/8MvOKzeA5wHzkBYg5wP0Vtf6D8f2P5L/CpiMzD3Ts/VNDGqpomIncCX4vILgqpZqnqQhHZz4lRex7wJW4Oi6dVdZuIfAL0wrVPKPAHYAfuft/D3ja/A8aISDdVPVLcNxsAsSKS7PP637hvv6+KyJ9wAfcD3HsqyJu42yOLvJpcCnBFqZc29IwA6uKul+/yZ4DBIrIAd/94TdkXLTR4t9Be9LPqOdwtpgeB6UU4zlYR+Ttu/vptwCpcGw64Ccj+JyLrcTWHwaVR9hDRwrv9KLhbtr/3WXeWiCzGtXPuBO5V1e981s8CLsG1j4ELEM0pRoCodKk2RKSaqh70PsheAdap6gv5bJuIq/qepkXoEmaMCRyf/90I4BNcI+wnwS5XRVbebzGdjNu8iLwSV8193d9GIjIM923ljxYcjAkJT3j/uyuAX4HJQS1NJVDpahDGGGOKpjLWIIwxxhSBBQhjjDF+WYAwxhjjlwUIYwohIpniclCtEJEPRSTWW17kbLjGlEcWIIwpXJq6jJptcX3RRwT6hN4gRfv/NEFlf4DGFM8MoKXvAhGp5i97q4g8LSL3+Wz3NxG513s+UnKy3z7pLWsqbo6N0cAioJG4jMXZGYIfKLN3aQwWIIwpMm+A1sVA3rQRR4ArVbUzLmvvv7yBmG/hpYDwagODgXEi0heXzLA7LgNnFy+xH0Br4F1V7YRLUNdAVduqajsKzsNjTKkr76k2jCkLMd4ALXA1iLfyrPebvVVVk8TN7NUJl811saqmegGiLy4NM0A1XMDYDGxS1bne8o243GEv4VK7TA3M2zPGPwsQxhQuV8p5PwrK3vomLhndKbjEdeACyjOqmmsUv5dE0jej8B4vWWI/4C5cVuFbS/hejCkyu8VkTMkVlL31E1z+/m7kTEX6DXCrl5sfEWkgInXzHlREEoAwVf0Il6mzc95tjAkkq0EYU3LjgM/9ZW9V1WPiJpXa600mhapOFZHTgTleFtiDwA24uQ98NQDe8enN9FhA34UxeVguJmMCyPtwXwRcq6rrgl0eY4rDbjEZEyAicgZuPurvLDiY8shqEMYYY/yyGoQxxhi/LEAYY4zxywKEMcYYvyxAGGOM8csChDHGGL/+H4JWs5TiMugtAAAAAElFTkSuQmCC"
+>
 </div>
 
 </div>
 
 </div>
 
+</div>
+
+</div>
+<div class="jp-Cell-inputWrapper"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>Overall, we can see an improvement after Slippi that cannot be attributed to "just working harder" that has led to a shakeup in the performance of the top 4 players. When corona was in full force during 2020, centralized sources for worldwide player rankings were fuzzy and unable to capture the effects of an online era. Now it's clear that the tools Slippi offered were impactful in helping players improve and have created an environment that makes it harder for one person to stay at the top without putting in the time to grind.</p>
+
+</div>
 </div>
 </body>
 
